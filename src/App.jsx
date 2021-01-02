@@ -99,6 +99,12 @@ const Calendar = props => {
 	);
 };
 
+const Input = ({style, noSecondSpace, ...rest}) => 
+	<span>
+		&nbsp;
+		<input style={Object.assign({}, {width: '3em', border: 'none', borderBottom: '1px solid black'}, style)} {...rest}/>
+		{noSecondSpace ? null : '\u00A0'}
+	</span>
 const setter = s => e => s(e.target.value);
 const isInvalid = n => n < 1;
 const Menu = props => {
@@ -123,19 +129,31 @@ const Menu = props => {
 	return (
 		<form onSubmit={handleSubmit}>
 			<div style={row}>
-				<label htmlFor="pages">how many pages of actual content?</label>
-				<input id='pages' name='pages' type='number' onChange={setter(setPages)} value={pages} />
+				i have to read
+				<Input id='pages' name='pages' type='number' onChange={setter(setPages)} value={pages} />
+				pages of actual content for my upcoming
+				<Input 
+					style={{width: '7em'}} 
+					noSecondSpace
+					id='nameOfThing' 
+					name='nameOfThing' 
+					type='text' 
+					onChange={setter(setNameOfThing)} 
+					value={nameOfThing} 
+				/>
+				.
 			</div>
 			<div style={row}>
-				<label htmlFor="rate">how many pages can you read in an hour?</label>
-				<input id='rate' name='rate' type='number' onChange={setter(setRate)} value={rate} />
+				<label>
+					i read about
+					<Input id='rate' name='rate' type='number' onChange={setter(setRate)} value={rate} 
+						title='60 is about average, but it varies wildly based on the content, writing style, and typesetting'
+					/>
+					pages in an hour.
+				</label>
 			</div>
-			<div style={row}>
-				<label htmlFor="nameOfThing">what's the occasion?</label>
-				<input id='nameOfThing' name='nameOfThing' type='text' onChange={setter(setNameOfThing)} value={nameOfThing} />
-			</div>
-			<div style={row}>
-				<input type="submit" />
+			<div style={{...row, padding: 5}}>
+				<input style={{border: '1px solid black', background: 'transparent'}} type="submit" />
 			</div>
 		</form>
 	);
@@ -176,7 +194,7 @@ const App = () => {
 	const [step, setStep] = useState(0);
 	const incStep = _ => setStep(succ);
 	const [pages, setPages] = useState(0);
-	const [rate, setRate] = useState(0);
+	const [rate, setRate] = useState(60);
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
 	const [eDay, setEDay] = useState();
 	const [daysOff, setDaysOff] = useState([]);
