@@ -3,9 +3,15 @@
   src: local('Lotion'), url(./Lotion.woff2) format('woff2');
 }
 
-body {
+body, html, #root {
+	height: 100%;
+	width: 100%;
   margin: 0;
   font-family: Lotion;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+input {
+	font-family: Lotion;
 }
