@@ -8,10 +8,14 @@ import {
 	add,
 	pipe,
 	sub,
+	complement,
 	I,
 	any, 
 	parseFloat,
-	maybeToNullable
+	maybeToNullable,
+	filter,
+	elem,
+	append,
 } from 'sanctuary';
 import {
 	formatWithOptions, getISODay, compareAsc, differenceInCalendarDays
@@ -46,8 +50,6 @@ const Calendar = props => {
 		month,
 		year,
 		localeString = 'enCA',
-		onDayHoverColor,
-		onDayClicked,
 		Day,
 		landscape: isLegitLandscape, size,
 	} = props;
@@ -56,7 +58,7 @@ const Calendar = props => {
 	const d = dater (year) (month);
 	const daysInM = range (0) (getDaysInM (year) (month));
 	const days = map (n => ({ 
-		n: succ (n), onClick: onDayClicked, hoverColor: onDayHoverColor, month, year,
+		n: succ (n), month, year,
 	})) (daysInM);
 	const emptyDays = sub (getISODay (d (days[0].n))) (6);
 	const locale = locales[localeString];
@@ -76,7 +78,7 @@ const Calendar = props => {
 			<div style={row}>
 				{
 					map (s => (
-						<div style={{width: size}}>
+						<div key={s} style={{width: size}}>
 							<h3>
 								{s}
 							</h3>
@@ -87,7 +89,7 @@ const Calendar = props => {
 			<hr />
 			<div style={row}>
 				{
-					map (n => <CalBox size={size}/>) (range (0) (emptyDays))
+					map (n => <CalBox key={n} size={size}/>) (range (0) (emptyDays))
 				}
 				{
 					map (Day) (days)
@@ -139,20 +141,45 @@ const Menu = props => {
 	);
 };
 
-const steps = [Menu, Calendar];
+const datesEq = d => e => compareAsc (d) (e) === 0;
+
+const steps = [
+	{
+		Component: Menu,
+		title: s => 'tell me about yourself',
+	}, {
+		Component: Calendar,
+		title: ({nameOfThing}) => `when's your ${nameOfThing}?`,
+		action: ({setEDay, year, month, onDone}) => n => {
+			setEDay(new Date(year, month, n));
+			onDone();
+		},
+	}, {
+		Component: Calendar,
+		title: _ => `which days can't you read?`,
+		action: ({setDaysOff, daysOff, year, month}) => n => {
+			const calDay = new Date(year, month, n)
+			return elem (calDay) (daysOff) 
+				? setDaysOff(filter(complement (datesEq (calDay))))
+				: setDaysOff(append(calDay));
+		},
+	}
+];
 const calcHoursPerDay = hours => days => {
 	if (days <= 1) return hours;
 	if (hours <= 0 || days <= 0) return 0;
 	return hours / days;
 };
 
+const eq = x => y => x === y;
 const App = () => {
 	const [step, setStep] = useState(0);
 	const incStep = _ => setStep(succ);
 	const [pages, setPages] = useState(0);
 	const [rate, setRate] = useState(0);
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
-	const [day, setDay] = useState();
+	const [eDay, setEDay] = useState();
+	const [daysOff, setDaysOff] = useState([]);
 
 	const landscape = window.innerHeight < window.innerWidth;
 	const today = startOfToday();
@@ -162,37 +189,44 @@ const App = () => {
 	const size = landscape ? 150 : 50;
 
 	const hours = pages / rate;
-	const daysTilDue = differenceInCalendarDays (today) (day);
+	const daysTilDue = differenceInCalendarDays (today) (eDay) - daysOff.length;
 	const hourPerDay = calcHoursPerDay (hours) (daysTilDue);
-	const showHours = n => {
-		if (!day || compareAsc (today) (day) < 1) return false;
-		const thisDay = new Date(year, month, n);
-		const c2this = compareAsc (thisDay);
-		return (c2this (day) === 1 && c2this (today) < 1)
-			|| c2this (today) === 0;
+	const dayCalcs = calDay => {
+		const sameDay = eq (0);
+		const c2this = compareAsc (calDay);
+		const thisAnd = c2this;
+		const sameAsThis = d => sameDay (c2this (d));
+		const isOff = any (sameAsThis) (daysOff);
+		const selected = sameAsThis (eDay);
+		const showHours = 
+			eDay && !isOff &&
+			!(!eDay || compareAsc (today) (eDay) < 1) && (
+			(c2this (eDay) === 1 && c2this (today) < 1) || (
+				sameDay (thisAnd (today))
+			));
+		return {showHours, selected, isOff};
 	};
 
-	const title = step === 0 ? 'tell me about yourself' : `when's your ${nameOfThing}?`;
+	const {Component, title, action} = steps[step];
 	const mainProps = {
 		setPages, setRate, setNameOfThing, 
-		pages, rate, nameOfThing, day, month, year,
+		pages, rate, nameOfThing, day: eDay, month, year,
 		landscape, size,
 		onDone: incStep,
-		onDayClicked: n => setDay(new Date(year, month, n)),
 		Day: props => {
 			const {
 				n, month, year,
-				onClick,
 			} = props;
-			const selected = compareAsc (new Date(year, month, n)) (day) === 0;
-			const text = showHours (n) ? hourPerDay.toFixed(1) 
+			const thisDay = new Date(year, month, n);
+			const {showHours, selected, isOff} = dayCalcs(thisDay);
+			const onClick = action({setEDay, setDaysOff, year, month, onDone: incStep, daysOff});
+			const text = showHours ? hourPerDay.toFixed(1) 
 				: selected && landscape ? nameOfThing
 				: /* else */ '';
 			const {container} = useDayStyles({hoverColor});
-			const style = {
-				color: selected ? '#e000ff' : undefined,
-				borderRight: 'black',
-			};
+			const color = selected ? '#e000ff' : undefined;
+			const background = isOff ? 'red' : undefined;
+			const style = { color, background };
 			const handleClick = _ => (onClick ?? I)(n);
 			return (
 				<CalBox size={size} style={style} className={container} onClick={handleClick} key={n}>
@@ -206,11 +240,10 @@ const App = () => {
 			);
 		},
 	};
-	const Main = steps[step];
   return (
 		<div style={{padding: 5}}>
-			<h1>{title}</h1>
-			<Main {...mainProps} />
+			<h1>{title({nameOfThing,})}</h1>
+			<Component {...mainProps} />
 		</div>
   );
 }
