@@ -9,11 +9,8 @@ import {
 	pipe,
 	sub,
 	I,
-	any, fromMaybe,
-	isNothing,
+	any, 
 	parseFloat,
-	compose,
-	or,
 	maybeToNullable
 } from 'sanctuary';
 import {
@@ -24,7 +21,6 @@ import * as locales from 'date-fns/locale';
 import {createUseStyles} from 'react-jss';
 
 const getDaysInM = y => m => new Date(y,m,0).getDate();
-const toString = x => x.toString();
 const succ = add (1);
 const trace = s => {console.log(s); return s;};
 
@@ -53,7 +49,10 @@ const Calendar = props => {
 		onDayHoverColor,
 		onDayClicked,
 		Day,
+		landscape: isLegitLandscape, size,
 	} = props;
+	const calWidth = size * 7;
+	const landscape = isLegitLandscape || window.innerWidth < calWidth;
 	const d = dater (year) (month);
 	const daysInM = range (0) (getDaysInM (year) (month));
 	const days = map (n => ({ 
@@ -61,14 +60,16 @@ const Calendar = props => {
 	})) (daysInM);
 	const emptyDays = sub (getISODay (d (days[0].n))) (6);
 	const locale = locales[localeString];
+	const dowFormat = landscape ? 'iiii' : 'iiiii';
+
 	const monthName = formatWithOptions ({locale}) ('MMMM') (new Date(year, month, 1));
-	const formatDayOfWeek = formatWithOptions ({locale}) ('iiii');
+	const formatDayOfWeek = formatWithOptions ({locale}) (dowFormat);
+
 	const nToDayOfWeek = pipe([ d, formatDayOfWeek ]);
 	const row = {display: 'flex', flexWrap: 'wrap', flexDirection: 'row'};
 	const daysOfWeek = map (nToDayOfWeek) (range (0) (7));
-	const size = 150;
 	return (
-		<div style={{width: size * 7}}>
+		<div style={{width: calWidth}}>
 			<h2>
 				{monthName}
 			</h2>
@@ -86,7 +87,7 @@ const Calendar = props => {
 			<hr />
 			<div style={row}>
 				{
-					map (CalBox) (range (0) (emptyDays))
+					map (n => <CalBox size={size}/>) (range (0) (emptyDays))
 				}
 				{
 					map (Day) (days)
@@ -153,10 +154,12 @@ const App = () => {
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
 	const [day, setDay] = useState();
 
+	const landscape = window.innerHeight < window.innerWidth;
 	const today = startOfToday();
 	const month = 0;
 	const year = 2021;
 	const hoverColor = 'yellow';
+	const size = landscape ? 150 : 50;
 
 	const hours = pages / rate;
 	const daysTilDue = differenceInCalendarDays (today) (day);
@@ -173,6 +176,7 @@ const App = () => {
 	const mainProps = {
 		setPages, setRate, setNameOfThing, 
 		pages, rate, nameOfThing, day, month, year,
+		landscape, size,
 		onDone: incStep,
 		onDayClicked: n => setDay(new Date(year, month, n)),
 		Day: props => {
@@ -182,19 +186,19 @@ const App = () => {
 			} = props;
 			const selected = compareAsc (new Date(year, month, n)) (day) === 0;
 			const text = showHours (n) ? hourPerDay.toFixed(1) 
-				: selected ? nameOfThing
+				: selected && landscape ? nameOfThing
 				: /* else */ '';
 			const {container} = useDayStyles({hoverColor});
 			const style = {
-				color: selected ? 'red' : undefined,
+				color: selected ? '#e000ff' : undefined,
 				borderRight: 'black',
 			};
 			const handleClick = _ => (onClick ?? I)(n);
 			return (
-				<CalBox style={style} className={container} onClick={handleClick} key={n}>
+				<CalBox size={size} style={style} className={container} onClick={handleClick} key={n}>
 					<h4>
 						{n}
-						<br />
+						{landscape ? <br /> : null}
 						<br />
 						{text}
 					</h4>
@@ -204,7 +208,7 @@ const App = () => {
 	};
 	const Main = steps[step];
   return (
-		<div>
+		<div style={{padding: 5}}>
 			<h1>{title}</h1>
 			<Main {...mainProps} />
 		</div>
