@@ -84,7 +84,7 @@ const Calendar = props => {
 				{
 					map (s => (
 						<div key={s} style={{width: size}}>
-							<h3>
+							<h3 style={{paddingLeft: 5}}>
 								{s}
 							</h3>
 						</div>
@@ -259,9 +259,11 @@ const App = () => {
 			const handleClick = _ => (onClick ?? I)(n);
 			return (
 				<CalBox size={size} style={style} className={container} onClick={handleClick} key={n}>
-					<h4> {n} </h4>
-					{landscape ? <br /> : null}
-					{text}
+					<div style={{padding: 5}}>
+						<h4> {n} </h4>
+						{landscape ? <br /> : null}
+						{text}
+					</div>
 				</CalBox>
 			);
 		},
