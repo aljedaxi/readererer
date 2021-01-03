@@ -190,7 +190,9 @@ const formatMinutes = uglyM => {
 	const m = Math.round(uglyM);
 	const hours = m >= 60 ? Math.floor(m / 60) : 0;
 	const minutes = m % 60;
-	return hours ? `${hours}h${minutes}m` : `${minutes}m`;
+	return hours && minutes ? `${hours}h${minutes}m` 
+		: hours ? `${hours}h`
+		: `${minutes}m`;
 };
 const c = minutes => days => {
 	if (days <= 1) return minutes;
