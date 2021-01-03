@@ -20,3 +20,7 @@ input {
 	font-family: Lotion;
 	font-size: 1em;
 }
+
+.realDay:hover {
+	background-color: #ffff0099;
+}
