@@ -16,6 +16,7 @@ import {
 	filter,
 	elem,
 	append,
+	compose,
 } from 'sanctuary';
 import {
 	formatWithOptions, getISODay, compareAsc, differenceInCalendarDays
@@ -183,11 +184,18 @@ const steps = [
 		},
 	}
 ];
-const calcHoursPerDay = hours => days => {
-	if (days <= 1) return hours;
-	if (hours <= 0 || days <= 0) return 0;
-	return hours / days;
+const formatMinutes = uglyM => {
+	const m = Math.round(uglyM);
+	const hours = m > 60 ? Math.floor(m / 60) : 0;
+	const minutes = m % 60;
+	return hours ? `${hours}h${minutes}m` : `${minutes}m`;
 };
+const c = minutes => days => {
+	if (days <= 1) return minutes;
+	if (minutes <= 0 || days <= 0) return 0;
+	return minutes / days;
+};
+const calcTimePerDay = m => compose (formatMinutes) (c (m));
 
 const eq = x => y => x === y;
 const App = () => {
@@ -195,6 +203,7 @@ const App = () => {
 	const incStep = _ => setStep(succ);
 	const [pages, setPages] = useState(0);
 	const [rate, setRate] = useState(60);
+	const perMinute = rate / 60;
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
 	const [eDay, setEDay] = useState();
 	const [daysOff, setDaysOff] = useState([]);
@@ -206,9 +215,10 @@ const App = () => {
 	const hoverColor = 'yellow';
 	const size = landscape ? 150 : 50;
 
-	const hours = pages / rate;
+	const minutes = pages / perMinute;
 	const daysTilDue = differenceInCalendarDays (today) (eDay) - daysOff.length;
-	const hourPerDay = calcHoursPerDay (hours) (daysTilDue);
+	const timePerDay = calcTimePerDay (minutes) (daysTilDue);
+
 	const dayCalcs = calDay => {
 		const sameDay = eq (0);
 		const c2this = compareAsc (calDay);
@@ -238,7 +248,7 @@ const App = () => {
 			const thisDay = new Date(year, month, n);
 			const {showHours, selected, isOff} = dayCalcs(thisDay);
 			const onClick = action({setEDay, setDaysOff, year, month, onDone: incStep, daysOff});
-			const text = showHours ? hourPerDay.toFixed(1) 
+			const text = showHours ? timePerDay
 				: selected && landscape ? nameOfThing
 				: /* else */ '';
 			const {container} = useDayStyles({hoverColor});
