@@ -28,6 +28,11 @@ import {createUseStyles} from 'react-jss';
 const getDaysInM = y => m => new Date(y,m,0).getDate();
 const succ = add (1);
 const trace = s => {console.log(s); return s;};
+const setter = s => e => s(e.target.value);
+const dater = y => m => d => new Date(y,m,d);
+const datesEq = d => e => compareAsc (d) (e) === 0;
+const isLaterThan = d => e => compareAsc (d) (e) === -1;
+const eq = x => y => x === y;
 
 const CalBox = ({children, size = 150, style, ...rest}) => {
 	return (
@@ -45,7 +50,6 @@ const useDayStyles = createUseStyles({
 	},
 });
 
-const dater = y => m => d => new Date(y,m,d);
 const Calendar = props => {
 	const {
 		month,
@@ -106,7 +110,6 @@ const Input = ({style, noSecondSpace, ...rest}) =>
 		<input style={Object.assign({}, {width: '3em', border: 'none', borderBottom: '1px solid black'}, style)} {...rest}/>
 		{noSecondSpace ? null : '\u00A0'}
 	</span>
-const setter = s => e => s(e.target.value);
 const isInvalid = n => n < 1;
 const Menu = props => {
 	const {
@@ -160,8 +163,6 @@ const Menu = props => {
 	);
 };
 
-const datesEq = d => e => compareAsc (d) (e) === 0;
-
 const steps = [
 	{
 		Component: Menu,
@@ -176,9 +177,10 @@ const steps = [
 	}, {
 		Component: Calendar,
 		title: _ => `which days can't you read?`,
-		action: ({setDaysOff, daysOff, year, month}) => n => {
+		action: ({setDaysOff, eDay, daysOff, year, month}) => n => {
 			const calDay = new Date(year, month, n)
-			return elem (calDay) (daysOff) 
+			if (isLaterThan (calDay) (eDay)) return;
+			elem (calDay) (daysOff) 
 				? setDaysOff(filter(complement (datesEq (calDay))))
 				: setDaysOff(append(calDay));
 		},
@@ -197,7 +199,6 @@ const c = minutes => days => {
 };
 const calcTimePerDay = m => compose (formatMinutes) (c (m));
 
-const eq = x => y => x === y;
 const App = () => {
 	const [step, setStep] = useState(0);
 	const incStep = _ => setStep(succ);
@@ -212,7 +213,7 @@ const App = () => {
 	const today = startOfToday();
 	const month = 0;
 	const year = 2021;
-	const hoverColor = 'yellow';
+	const hoverColor = '#ffff0099';
 	const size = landscape ? 150 : 50;
 
 	const minutes = pages / perMinute;
@@ -247,23 +248,20 @@ const App = () => {
 			} = props;
 			const thisDay = new Date(year, month, n);
 			const {showHours, selected, isOff} = dayCalcs(thisDay);
-			const onClick = action({setEDay, setDaysOff, year, month, onDone: incStep, daysOff});
+			const onClick = action({setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff});
 			const text = showHours ? timePerDay
 				: selected && landscape ? nameOfThing
 				: /* else */ '';
 			const {container} = useDayStyles({hoverColor});
-			const color = selected ? '#e000ff' : undefined;
-			const background = isOff ? 'red' : undefined;
+			const color = selected ? '#0080ff' : undefined;
+			const background = isOff ? '#ee002d99' : undefined;
 			const style = { color, background };
 			const handleClick = _ => (onClick ?? I)(n);
 			return (
 				<CalBox size={size} style={style} className={container} onClick={handleClick} key={n}>
-					<h4>
-						{n}
-						{landscape ? <br /> : null}
-						<br />
-						{text}
-					</h4>
+					<h4> {n} </h4>
+					{landscape ? <br /> : null}
+					{text}
 				</CalBox>
 			);
 		},
