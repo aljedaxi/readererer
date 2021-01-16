@@ -42,6 +42,8 @@ import * as locales from 'date-fns/locale';
 import {Combobox, ComboboxInput, ComboboxList, ComboboxOption, ComboboxPopover,} from "@reach/combobox";
 import "@reach/combobox/styles.css";
 
+const contactInfo = 'hmu @ alje(at)daxi.ml';
+
 const parseInt = overlyComplexForThisSituationParseInt (10);
 
 const getDaysInM = y => m => new Date(y,m,0).getDate();
@@ -353,34 +355,39 @@ const App = () => {
 	const textToValue = x => x === 'yes' ? 1 : 0;
 	const handleProcrastinationChange = e => setIsReadingLastMinute(textToValue(e.target.value));
   return (
-		<div style={{padding: 5}}>
-			<h1>{title}</h1>
-			{step === 0 ? (
-				<Menu {...{
-					onDone: handleMenuDone,
-					pages, setPages, rate, setRate, 
-					nameOfThing, setNameOfThing,
-					today,
-				}}/>
-			) : null}
-			{step === 1 ? (
-				<>
-					<div>
-						<label htmlFor="combobox">
-							will you be reading the day of? 
-						</label>
-						<Combobox id='combobox'>
-							<ComboboxInput onChange={handleProcrastinationChange}/>
-							<ComboboxPopover>
-								<ComboboxList>
-									{[0,1].map(n => <ComboboxOption key={n} value={valueToText(n)}/>)}
-								</ComboboxList>
-							</ComboboxPopover>
-						</Combobox>
-					</div>
-					{map (Calendar) (calProps)}
-				</>
-			) : null}
+		<div style={{height: '100%', padding: 5}}>
+			<header>
+				<h1>{title}</h1>
+			</header>
+			<main>
+				{step === 0 ? (
+					<Menu {...{
+						onDone: handleMenuDone,
+						pages, setPages, rate, setRate, 
+						nameOfThing, setNameOfThing,
+						today,
+					}}/>
+				) : null}
+				{step === 1 ? (
+					<>
+						<div>
+							<label htmlFor="combobox">
+								will you be reading the day of? 
+							</label>
+							<Combobox id='combobox'>
+								<ComboboxInput onChange={handleProcrastinationChange}/>
+								<ComboboxPopover>
+									<ComboboxList>
+										{[0,1].map(n => <ComboboxOption key={n} value={valueToText(n)}/>)}
+									</ComboboxList>
+								</ComboboxPopover>
+							</Combobox>
+						</div>
+						{map (Calendar) (calProps)}
+					</>
+				) : null}
+			</main>
+			<footer>{contactInfo}</footer>
 		</div>
   );
 }

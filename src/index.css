@@ -7,9 +7,14 @@ body, html, #root {
 	height: 100%;
 	width: 100%;
   margin: 0;
+	padding: 5px;
   font-family: Lotion;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+main {
+	height: 100%;
 }
 
 h4 {
@@ -23,4 +28,8 @@ input {
 
 .realDay:hover {
 	background-color: #ffff0099;
+}
+
+footer {
+	color: grey;
 }
