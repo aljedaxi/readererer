@@ -25,6 +25,15 @@ import {
 import {startOfToday} from 'date-fns';
 import * as locales from 'date-fns/locale';
 import {createUseStyles} from 'react-jss';
+import {
+	Combobox,
+	ComboboxInput,
+	ComboboxPopover,
+	ComboboxList,
+	ComboboxOption,
+	ComboboxOptionText,
+} from "@reach/combobox";
+import "@reach/combobox/styles.css";
 
 const getDaysInM = y => m => new Date(y,m,0).getDate();
 const succ = add (1);
@@ -169,13 +178,15 @@ const Menu = props => {
 	);
 };
 
-const isntInRange = ({clickedDay, eDay, today}) =>
-	isLaterThanOrEqualTo (clickedDay) (eDay) ||
-	isEarlierThan (today) (clickedDay)
+const isntInRange = ({clickedDay, eDay, today, isReadingLastMinute}) => {
+	console.log('isReadingLastMinute', isReadingLastMinute);
+	const f = isReadingLastMinute ? isLaterThan : isLaterThanOrEqualTo;
+	return f (clickedDay) (eDay) || isEarlierThan (today) (clickedDay);
+};
 
-const onDayBad = ({setDaysOff, eDay, daysOff, year, month, today}) => n => {
+const onDayBad = ({setDaysOff, eDay, daysOff, year, month, today, isReadingLastMinute}) => n => {
 	const clickedDay = new Date(year, month, n)
-	if (isntInRange({clickedDay, eDay, today})) return;
+	if (isntInRange({clickedDay, eDay, today, isReadingLastMinute})) return;
 	elem (clickedDay) (daysOff) 
 		? setDaysOff(filter(complement (datesEq (clickedDay))))
 		: setDaysOff(append(clickedDay));
@@ -210,25 +221,21 @@ const App = () => {
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
 	const [eDay, setEDay] = useState(today);
 	const [daysOff, setDaysOff] = useState([]);
+	const [isReadingLastMinute, setIsReadingLastMinute] = useState(1);
 
 	const minutes = pages / perMinute;
-	const daysTilDue = differenceInCalendarDays (today) (eDay) - daysOff.length;
+	const daysTilDue = differenceInCalendarDays (today) (eDay) - daysOff.length - isReadingLastMinute;
 	const timePerDay = calcTimePerDay (minutes) (daysTilDue);
 
 	const dayCalcs = calDay => {
 		const sameDay = eq (0);
 		const c2this = compareAsc (calDay);
-		const thisAnd = c2this;
 		const sameAsThis = d => sameDay (c2this (d));
 		const isOff = any (sameAsThis) (daysOff);
 		const selected = sameAsThis (eDay);
 		const showHours = 
-			eDay && 
 			!isOff &&
-			!isLaterThanOrEqualTo (today) (eDay) && (
-			(c2this (eDay) === 1 && c2this (today) < 1) || (
-				sameDay (thisAnd (today))
-			));
+			!isntInRange ({clickedDay: calDay, today, eDay, isReadingLastMinute});
 		return {showHours, selected, isOff};
 	};
 
@@ -248,10 +255,14 @@ const App = () => {
 		} = props;
 		const thisDay = new Date(year, month, n);
 		const {showHours, selected, isOff} = dayCalcs(thisDay);
-		const onClick = action({today, setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff});
-		const text = showHours ? timePerDay
-			: selected && landscape ? nameOfThing
-			: /* else */ '';
+		const onClick = action({today, setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff, isReadingLastMinute});
+		const text = (
+			<span>
+				{showHours && timePerDay}
+				{showHours && selected && landscape && <br />}
+				{selected && landscape && nameOfThing}
+			</span>
+		);
 		const color = selected ? '#0080ff' : undefined;
 		const background = isOff ? '#ee002d99' : undefined;
 		const style = { color, background };
@@ -281,6 +292,9 @@ const App = () => {
 	};
 	const calProps = map (date2calProps) (months);
 
+	const valueToText = x => x ? 'yes' : 'no';
+	const textToValue = x => x === 'yes' ? 1 : 0;
+	const handleProcrastinationChange = e => setIsReadingLastMinute(textToValue(e.target.value));
   return (
 		<div style={{padding: 5}}>
 			<h1>{title({nameOfThing,})}</h1>
@@ -293,7 +307,22 @@ const App = () => {
 				}}/>
 			) : null}
 			{step === 1 ? (
-				map (Calendar) (calProps)
+				<>
+					<div>
+						<label htmlFor="combobox">
+							will you be reading the day of? 
+						</label>
+						<Combobox id='combobox'>
+							<ComboboxInput onChange={handleProcrastinationChange}/>
+							<ComboboxPopover>
+								<ComboboxList>
+									{[0,1].map(n => <ComboboxOption key={n} value={valueToText(n)}/>)}
+								</ComboboxList>
+							</ComboboxPopover>
+						</Combobox>
+					</div>
+					{map (Calendar) (calProps)}
+				</>
 			) : null}
 		</div>
   );
