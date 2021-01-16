@@ -32,6 +32,8 @@ const setter = s => e => s(e.target.value);
 const dater = y => m => d => new Date(y,m,d);
 const datesEq = d => e => compareAsc (d) (e) === 0;
 const isLaterThan = d => e => compareAsc (d) (e) === -1;
+const isLaterThanOrEqualTo = d => e => compareAsc (d) (e) < 1;
+const isEarlierThan = d => e => compareAsc (d) (e) === -1;
 const eq = x => y => x === y;
 
 const CalBox = ({children, size = 150, style, ...rest}) => {
@@ -167,12 +169,16 @@ const Menu = props => {
 	);
 };
 
-const onDayBad = ({setDaysOff, eDay, daysOff, year, month}) => n => {
-	const calDay = new Date(year, month, n)
-	if (isLaterThan (calDay) (eDay)) return;
-	elem (calDay) (daysOff) 
-		? setDaysOff(filter(complement (datesEq (calDay))))
-		: setDaysOff(append(calDay));
+const isntInRange = ({clickedDay, eDay, today}) =>
+	isLaterThanOrEqualTo (clickedDay) (eDay) ||
+	isEarlierThan (today) (clickedDay)
+
+const onDayBad = ({setDaysOff, eDay, daysOff, year, month, today}) => n => {
+	const clickedDay = new Date(year, month, n)
+	if (isntInRange({clickedDay, eDay, today})) return;
+	elem (clickedDay) (daysOff) 
+		? setDaysOff(filter(complement (datesEq (clickedDay))))
+		: setDaysOff(append(clickedDay));
 };
 
 const formatMinutes = uglyM => {
@@ -217,8 +223,9 @@ const App = () => {
 		const isOff = any (sameAsThis) (daysOff);
 		const selected = sameAsThis (eDay);
 		const showHours = 
-			eDay && !isOff &&
-			!(!eDay || compareAsc (today) (eDay) < 1) && (
+			eDay && 
+			!isOff &&
+			!isLaterThanOrEqualTo (today) (eDay) && (
 			(c2this (eDay) === 1 && c2this (today) < 1) || (
 				sameDay (thisAnd (today))
 			));
@@ -241,7 +248,7 @@ const App = () => {
 		} = props;
 		const thisDay = new Date(year, month, n);
 		const {showHours, selected, isOff} = dayCalcs(thisDay);
-		const onClick = action({setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff});
+		const onClick = action({today, setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff});
 		const text = showHours ? timePerDay
 			: selected && landscape ? nameOfThing
 			: /* else */ '';
