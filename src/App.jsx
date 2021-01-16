@@ -1,38 +1,33 @@
+import {useState,} from 'react';
 import {
-	useState,
-} from 'react';
-import {
-	range, 
-	div,
-	map, 
 	add,
-	pipe,
-	sub,
-	complement,
-	I,
-	any, 
-	parseFloat,
-	maybeToNullable,
-	filter,
-	elem,
+	any,
 	append,
+	complement,
 	compose,
+	div,
+	elem,
+	filter,
+	map,
+	maybeToNullable,
+	parseFloat,
+	pipe,
+	range,
+	sub,
 } from 'sanctuary';
 import {
-	formatWithOptions, getISODay, compareAsc, differenceInCalendarDays,
-	parseISO, eachMonthOfInterval, getMonth, getYear,
+	compareAsc,
+	differenceInCalendarDays,
+	eachMonthOfInterval,
+	formatWithOptions,
+	getISODay,
+	getMonth,
+	getYear,
+	parseISO,
 } from 'date-fns/fp';
 import {startOfToday} from 'date-fns';
 import * as locales from 'date-fns/locale';
-import {createUseStyles} from 'react-jss';
-import {
-	Combobox,
-	ComboboxInput,
-	ComboboxPopover,
-	ComboboxList,
-	ComboboxOption,
-	ComboboxOptionText,
-} from "@reach/combobox";
+import {Combobox, ComboboxInput, ComboboxList, ComboboxOption, ComboboxPopover,} from "@reach/combobox";
 import "@reach/combobox/styles.css";
 
 const getDaysInM = y => m => new Date(y,m,0).getDate();
@@ -112,19 +107,21 @@ const Input = ({style, noSecondSpace, ...rest}) =>
 		<input style={Object.assign({}, {width: '3em', border: 'none', borderBottom: '1px solid black'}, style)} {...rest}/>
 		{noSecondSpace ? null : '\u00A0'}
 	</span>
-const isInvalid = n => n < 1;
+
 const Menu = props => {
 	const {
 		onDone, pages, setPages, rate, setRate, 
 		nameOfThing, setNameOfThing,
 		today,
 	} = props;
+	const isInvalid = n => n < 1;
 	const [dayString, setDayString] = useState('');
 	const handleSubmit = e => {
 		e.preventDefault();
 		const parsedDate = parseISO (dayString);
 		if (isLaterThan (today) (parsedDate)) {
 			alert (`i'm afraid you've missed your ${nameOfThing}. is there anothing coming up?`);
+			return;
 		}
 		if (!pages || !rate || !nameOfThing) {
 			alert('a horse walks into a cafe and asks for coffee with no milk. the barista says "we don\'t have coffee with no milk, but i can give you coffee with no cream".');
@@ -179,17 +176,8 @@ const Menu = props => {
 };
 
 const isntInRange = ({clickedDay, eDay, today, isReadingLastMinute}) => {
-	console.log('isReadingLastMinute', isReadingLastMinute);
 	const f = isReadingLastMinute ? isLaterThan : isLaterThanOrEqualTo;
 	return f (clickedDay) (eDay) || isEarlierThan (today) (clickedDay);
-};
-
-const onDayBad = ({setDaysOff, eDay, daysOff, year, month, today, isReadingLastMinute}) => n => {
-	const clickedDay = new Date(year, month, n)
-	if (isntInRange({clickedDay, eDay, today, isReadingLastMinute})) return;
-	elem (clickedDay) (daysOff) 
-		? setDaysOff(filter(complement (datesEq (clickedDay))))
-		: setDaysOff(append(clickedDay));
 };
 
 const formatMinutes = uglyM => {
@@ -206,6 +194,27 @@ const c = minutes => days => {
 	return minutes / days;
 };
 const calcTimePerDay = m => compose (formatMinutes) (c (m));
+const dayCalcs = ({clickedDay, eDay, today, isReadingLastMinute, daysOff}) => {
+	const sameDay = eq (0);
+	const c2this = compareAsc (clickedDay);
+	const sameAsThis = compose (sameDay) (c2this);
+	const isOff = any (sameAsThis) (daysOff);
+	const selected = sameAsThis (eDay);
+	const showHours =
+		!isOff &&
+		!isntInRange ({clickedDay, eDay, today, isReadingLastMinute});
+	return {showHours, selected, isOff};
+};
+
+const jan27th = new Date(2021, 0, 27);
+
+const onDayBad = ({setDaysOff, eDay, daysOff, year, month, today, isReadingLastMinute}) => n => {
+	const clickedDay = new Date(year, month, n)
+	if (isntInRange({clickedDay, eDay, today, isReadingLastMinute})) return;
+	elem (clickedDay) (daysOff)
+		? setDaysOff(filter(complement (datesEq (clickedDay))))
+		: setDaysOff(append(clickedDay));
+};
 
 const App = () => {
 	const landscape = window.innerHeight < window.innerWidth;
@@ -213,13 +222,13 @@ const App = () => {
 	// const hoverColor = '#ffff0099';
 	const size = landscape ? 150 : 50;
 
-	const [step, setStep] = useState(0);
+	const [step, setStep] = useState(1);
 	const incStep = _ => setStep(succ);
-	const [pages, setPages] = useState(0);
+	const [pages, setPages] = useState(1000);
 	const [rate, setRate] = useState(60);
 	const perMinute = rate / 60;
 	const [nameOfThing, setNameOfThing] = useState('Seminar');
-	const [eDay, setEDay] = useState(today);
+	const [eDay, setEDay] = useState(jan27th);
 	const [daysOff, setDaysOff] = useState([]);
 	const [isReadingLastMinute, setIsReadingLastMinute] = useState(1);
 
@@ -227,52 +236,29 @@ const App = () => {
 	const daysTilDue = differenceInCalendarDays (today) (eDay) - daysOff.length - isReadingLastMinute;
 	const timePerDay = calcTimePerDay (minutes) (daysTilDue);
 
-	const dayCalcs = calDay => {
-		const sameDay = eq (0);
-		const c2this = compareAsc (calDay);
-		const sameAsThis = d => sameDay (c2this (d));
-		const isOff = any (sameAsThis) (daysOff);
-		const selected = sameAsThis (eDay);
-		const showHours = 
-			!isOff &&
-			!isntInRange ({clickedDay: calDay, today, eDay, isReadingLastMinute});
-		return {showHours, selected, isOff};
-	};
-
-	const steps = [
-		{
-			title: s => 'tell me about yourself',
-		}, {
-			title: _ => `which days can't you read?`,
-			action: onDayBad,
-		}
-	];
-	const {title, action} = steps[step];
+	const title = [
+		_ => 'tell me about yourself',
+		_ => `which days can't you read?`,
+	][step];
 
 	const Day = props => {
 		const {
 			n, month, year,
 		} = props;
 		const thisDay = new Date(year, month, n);
-		const {showHours, selected, isOff} = dayCalcs(thisDay);
-		const onClick = action({today, setEDay, eDay, setDaysOff, year, month, onDone: incStep, daysOff, isReadingLastMinute});
-		const text = (
-			<span>
-				{showHours && timePerDay}
-				{showHours && selected && landscape && <br />}
-				{selected && landscape && nameOfThing}
-			</span>
-		);
+		const {showHours, selected, isOff} = dayCalcs({clickedDay: thisDay, eDay, today, isReadingLastMinute, daysOff});
+		const handleClick = _ => onDayBad({today, setEDay, eDay, setDaysOff, year, month, daysOff, isReadingLastMinute}) (n);
 		const color = selected ? '#0080ff' : undefined;
 		const background = isOff ? '#ee002d99' : undefined;
 		const style = { color, background };
-		const handleClick = _ => (onClick ?? I)(n);
 		return (
 			<CalBox size={size} style={style} className='realDay' onClick={handleClick} key={n}>
 				<div style={{padding: 5}}>
 					<h4> {n} </h4>
 					{landscape ? <br /> : null}
-					{text}
+					{showHours && timePerDay}
+					{showHours && selected && landscape && <br/>}
+					{selected && landscape && nameOfThing}
 				</div>
 			</CalBox>
 		);
@@ -297,7 +283,7 @@ const App = () => {
 	const handleProcrastinationChange = e => setIsReadingLastMinute(textToValue(e.target.value));
   return (
 		<div style={{padding: 5}}>
-			<h1>{title({nameOfThing,})}</h1>
+			<h1>{title}</h1>
 			{step === 0 ? (
 				<Menu {...{
 					onDone: handleMenuDone,

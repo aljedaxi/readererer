@@ -2,8 +2,9 @@
   "name": "reader-calendrator",
   "version": "0.1.0",
   "private": true,
-	"license": "SEE LICENSE IN LICENSE.TXT",
+  "license": "SEE LICENSE IN LICENSE.TXT",
   "dependencies": {
+    "@reach/combobox": "^0.12.1",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
