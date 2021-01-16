@@ -135,6 +135,10 @@ const Menu = props => {
 	const handleSubmit = e => {
 		e.preventDefault();
 		const parsedDate = parseISO (dayString);
+		if (!parsedDate) {
+			alert (`please select a date.`);
+			return;
+		}
 		if (isLaterThan (today) (parsedDate)) {
 			alert (`i'm afraid you've missed your ${nameOfThing}. is there anothing coming up?`);
 			return;
